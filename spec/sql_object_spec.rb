@@ -1,4 +1,4 @@
-require '01_sql_object'
+require 'sql_object'
 require 'securerandom'
 
 describe SQLObject do
@@ -93,7 +93,7 @@ describe SQLObject do
     it '::all returns all the cats' do
       cats = Cat.all
 
-      expect(cats.count).to eq(5)
+      expect(cats.count).to eq(6)
       cats.all? { |cat| expect(cat).to be_instance_of(Cat) }
     end
 
@@ -121,7 +121,7 @@ describe SQLObject do
     end
 
     it '#insert inserts a new record' do
-      expect(Cat.all.count).to eq(6)
+      expect(Cat.all.count).to eq(7)
     end
 
     it '#insert sets the id' do
@@ -145,7 +145,6 @@ describe SQLObject do
       human.lname = 'von Rubens'
       human.update
 
-      # pull the human again
       human = Human.find(2)
       expect(human.fname).to eq('Matthew')
       expect(human.lname).to eq('von Rubens')

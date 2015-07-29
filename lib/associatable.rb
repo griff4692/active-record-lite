@@ -1,7 +1,6 @@
-require_relative '02_searchable'
+require_relative 'searchable'
 require 'active_support/inflector'
 
-# Phase IIIa
 class AssocOptions
   attr_accessor(
     :foreign_key,
@@ -20,47 +19,48 @@ end
 
 class BelongsToOptions < AssocOptions
   def initialize(name, options = {})
-    default = {
+    defaults = {
         class_name: name.to_s.camelcase,
         foreign_key: name.to_s.concat("_id").to_sym,
         primary_key: :id
     }
 
-    default = default.merge(options)
-
-    @class_name = default[:class_name]
-    @foreign_key = default[:foreign_key]
-    @primary_key = default[:primary_key]
+    defaults.merge(options).each do |key, value|
+      self.send("#{key}=", value)
+    end
   end
 end
 
 class HasManyOptions < AssocOptions
   def initialize(name, self_class_name, options = {})
-    default = {
+    defaults = {
       class_name: name.to_s.singularize.camelcase,
       foreign_key: self_class_name.downcase.concat("_id").to_sym,
       primary_key: :id
     }
-    default = default.merge(options)
-    @class_name = default[:class_name]
-    @foreign_key = default[:foreign_key]
-    @primary_key = default[:primary_key]
+
+    defaults.merge(options).each do |key, value|
+      self.send("#{key}=", value)
+    end
   end
 end
 
 module Associatable
-  # Phase IIIb
-  def belongs_to(name, options = {})
-    options = BelongsToOptions.new(name, options)
+  def assoc_options
+    @assoc_options ||= {}
+  end
 
-    assoc_options[name] = options
+  def belongs_to(name, options = {})
+    self.assoc_options[name] = BelongsToOptions.new(name, options)
 
     define_method(name) do
-      foreign_key = self.send(options.foreign_key)
+      options = self.class.assoc_options[name]
 
-      result = (options.model_class).where(options.primary_key => foreign_key)
-
-      result.first
+      foreign_key_val = self.send(options.foreign_key)
+      options
+        .model_class
+        .where(options.primary_key => foreign_key_val)
+        .first
     end
   end
 
@@ -72,10 +72,6 @@ module Associatable
     end
 
     results
-  end
-
-  def assoc_options
-    @assoc_options = @assoc_options || {}
   end
 end
 

@@ -1,4 +1,4 @@
-require '03_associatable'
+require 'associatable'
 
 describe 'AssocOptions' do
   describe 'BelongsToOptions' do
@@ -65,7 +65,7 @@ describe 'AssocOptions' do
       options = HasManyOptions.new('cats', 'Human')
       expect(options.model_class).to eq(Cat)
     end
-    
+
     it '#table_name returns table name of associated object' do
       options = BelongsToOptions.new('human')
       expect(options.table_name).to eq('humans')
@@ -93,7 +93,7 @@ describe 'Associatable' do
       has_many :cats, foreign_key: :owner_id
       belongs_to :house
 
-      finalize!
+      self.finalize!
     end
 
     class House < SQLObject
@@ -131,15 +131,16 @@ describe 'Associatable' do
 
   describe '#has_many' do
     let(:ned) { Human.find(3) }
+    debugger;
     let(:ned_house) { House.find(2) }
 
     it 'fetches `cats` from `Human`' do
       expect(ned).to respond_to(:cats)
       cats = ned.cats
 
-      expect(cats.length).to eq(2)
+      expect(cats.length).to eq(3)
 
-      expected_cat_names = %w(Haskell Markov)
+      expected_cat_names = %w(Haskell Markov Quincy)
       2.times do |i|
         cat = cats[i]
 

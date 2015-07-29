@@ -1,28 +1,31 @@
 require_relative 'db_connection'
 require 'active_support/inflector'
 require 'byebug'
-# NB: the attr_accessor we wrote in phase 0 is NOT used in the rest
-# of this project. It was only a warm up.
 
+# inspired by ActiveRecord::Base
 class SQLObject
+  # factory methods
   def self.columns
-    DBConnection.execute2(<<-SQL)
+    return @columns if @columns
+    # returns all column names
+    cols = DBConnection.execute2(<<-SQL).first
       SELECT
-        *
+        #{table_name}.*
       FROM
-        #{table_name}
+        #{self.table_name}
     SQL
-    .first.map(&:to_sym)
+    cols.map!(&:to_sym)
+    @columns = cols
   end
 
   def self.finalize!
     columns.each do |attr_name|
       define_method(attr_name) do
-        attributes[attr_name]
+        self.attributes[attr_name]
       end
 
       define_method("#{attr_name}=") do |attr_value|
-        attributes[attr_name] = attr_value
+        self.attributes[attr_name] = attr_value
       end
     end
   end
@@ -32,38 +35,33 @@ class SQLObject
   end
 
   def self.table_name
-    @table_name || name.tableize
+    # can overwrite table name ||or allow ActiveSupport to infer it
+    @table_name || self.name.underscore.pluralize
   end
 
   def self.all
     results = DBConnection.execute(<<-SQL)
       SELECT
-        *
+        #{table_name}.*
       FROM
         #{table_name}
     SQL
 
-    self.parse_all(results)
+    parse_all(results)
   end
 
   def self.parse_all(results)
-    self_obj_array = []
-
-    results.each do |result|
-      self_obj_array << self.new(result)
-    end
-
-    self_obj_array
+    results.map { |result| self.new(result) }
   end
 
   def self.find(id)
     result = DBConnection.execute(<<-SQL, id)
-      SELECT
-        *
-      FROM
-        #{table_name}
-      WHERE
-        id = ?
+  SELECT
+    #{table_name}.*
+  FROM
+    #{table_name}
+  WHERE
+    #{table_name}.id = ?
     SQL
 
     result.empty? ? nil : self.new(result.first)
@@ -71,7 +69,8 @@ class SQLObject
 
   def initialize(params = {})
     params.each do |attr_name, value|
-      unless self.class.columns.include?(attr_name.to_sym)
+      attr_name = attr_name.to_sym
+      unless self.class.columns.include?(attr_name)
           raise "unknown attribute '#{attr_name}'"
       end
 
@@ -84,22 +83,19 @@ class SQLObject
   end
 
   def attribute_values
-    attr_values = []
-    self.class.columns.each do |attr_name|
-      attr_values << self.send(attr_name)
-    end
-    attr_values
+    self.class.columns.map { |attr| self.send(attr) }
   end
 
   def insert
-    q = (["?"] * self.class.columns.count).join(', ')
-    cols = self.class.columns.join(", ")
+    cols = self.class.columns.drop(1) # dont include id
+    question_marks = (["?"] * cols.count).join(', ')
+    col_names = cols.map(&:to_s).join(", ")
 
-    DBConnection.execute(<<-SQL, *attribute_values)
+    DBConnection.execute(<<-SQL, *attribute_values.drop(1))
       INSERT INTO
-        #{self.class.table_name} (#{cols})
+        #{self.class.table_name} (#{col_names})
       VALUES
-        (#{q})
+        (#{question_marks})
     SQL
 
     self.id = DBConnection.last_insert_row_id
@@ -116,7 +112,7 @@ class SQLObject
       SET
         #{to_set}
       WHERE
-        id = ?
+        #{self.class.table_name}.id = ?
     SQL
   end
 

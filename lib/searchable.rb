@@ -1,10 +1,10 @@
 require_relative 'db_connection'
-require_relative '01_sql_object'
+require_relative 'sql_object'
 
 module Searchable
   def where(params)
 
-    where_clause = params.map do |attr_name, attr_value|
+    where_clause = params.keys.map do |attr_name|
       "#{attr_name} = ?"
     end.join(' AND ')
 
@@ -17,7 +17,7 @@ module Searchable
         #{where_clause}
     SQL
 
-    results.empty? ? [] : parse_all(results)
+    parse_all(results)
   end
 end
 
