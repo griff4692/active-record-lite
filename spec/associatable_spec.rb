@@ -131,7 +131,6 @@ describe 'Associatable' do
 
   describe '#has_many' do
     let(:ned) { Human.find(3) }
-    debugger;
     let(:ned_house) { House.find(2) }
 
     it 'fetches `cats` from `Human`' do

@@ -58,7 +58,6 @@ describe 'Associatable' do
     before(:all) do
       class Cat
         has_one_through :home, :human, :house
-
         self.finalize!
       end
     end
@@ -75,5 +74,32 @@ describe 'Associatable' do
       expect(house).to be_instance_of(House)
       expect(house.address).to eq('26th and Guerrero')
     end
+  end
+
+  describe '#has_many_through' do
+    before(:all) do
+      class Human
+        has_many_through :toys, :cats, :toys
+        finalize!
+      end
+
+      class Toy < SQLObject
+        belongs_to :cat
+        finalize!
+      end
+
+      class Cat
+        has_many :toys
+        finalize!
+      end
+    end
+
+    let(:human) { Human.find(3) }
+
+    it 'fetches associated toys for a human' do
+      toys = human.toys
+      expect(toys.length).to eq(3)
+    end
+
   end
 end
