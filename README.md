@@ -1,6 +1,6 @@
 # active-record-lite
 
-## Summary description
+# Summary description
 
 - Active Record Lite is an interface between Rails and SQL inspired by Rails' Active Record.
 - It leverages Ruby's metaprogramming functionality to create a fully extendable SQLObject class which supports all the functionality provided by ActiveRecord::Base.
